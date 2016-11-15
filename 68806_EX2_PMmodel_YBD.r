@@ -1,3 +1,4 @@
+##############################
 # estimate daylength in Jerusalem
 # day length in Jerusalem ranges between 10 to 14 h
 # estimate day length for each half of the year and concatanate
@@ -13,6 +14,7 @@ for (ii in 1:length(daylengthbynum)) {
   daylengthbynum[ii]=daylengthJer[daynum[ii]]
 }
 
+##############################
 # calculate et using the PM function of N.Tague
 et<-penman_montieth (Tair=metdata$tavg,vpd = metdata$vpd, Rnet=metdata$rnet,gs=metdata$gs, ga=metdata$ga, dayl=daylengthbynum, CP=1010, Pair=101325)
 
@@ -38,4 +40,25 @@ lines(et_newgs2, col="green")
 
 # plot a comparison of the two et values
 plot(et,et_newgs2,type="p",col="red", main='comparison of original and modified ET',xlab='PM derived ET', ylab='modified ET using new gs value')
+
+##############################
+# sensitivity analysis of the PM equation
+# calculate et using the PM function of N.Tague and estimate its sensitivity to several factors
+
+#define a color vector for plotting data
+colorvec<-c(rep('blue', 20), 'black',rep('red', 20))
+
+
+senseitivityfactor=seq(from=0.00 ,to=2.0 ,by=0.05)
+ettemp=matrix(data=NA,nrow=length(et),ncol=length(senseitivityfactor))
+for (ii in 1:length(senseitivityfactor)){
+ettemp[1:length(et),ii]<-penman_montieth (Tair=metdata$tavg*senseitivityfactor[ii],vpd = metdata$vpd, Rnet=metdata$rnet,gs=metdata$gs, ga=metdata$ga, dayl=daylengthbynum, CP=1010, Pair=101325)
+}
+
+
+plot(et,type="l",col="black", main='comparison of original and modified ET',xlab='PM derived ET', ylab='modified ET using new gs value')
+for (ii in 1:floor(length(senseitivityfactor))){
+lines(ettemp[,ii],col=colorvec[ii], alpha=0.3)
+}
+lines(et,type="l",col="black", main='comparison of original and modified ET',xlab='PM derived ET', ylab='modified ET using new gs value')
 
