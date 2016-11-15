@@ -43,7 +43,7 @@ metdata=cbind(metdata,daylengthbynum)
 plot(daylengthJer, type='l',main='day length',xlab='day of the year',ylab='day length [h]')
 ```
 
-calculate ET using the Penamn-Montieth equation of Naomi
+calculate ET using the Penman-Montieth equation of Naomi
 
 ```{r , echo=TRUE}
 #' Penman Montieth Equation
@@ -132,8 +132,8 @@ plot(et,type='l',main='ET P-M estimation', xlab='day', ylab='ET')
 ```
 
 Adjust gs values following simplistic assumptions in Naomi email
-if the temperature is above mean temperature, the maximum gs value is assigend
-if the temperature is below mean temperature, a zero value is assigend
+if the temperature is above mean temperature, the maximum gs value is assigned
+if the temperature is below mean temperature, a zero value is assigned
 
 ```{r , echo=TRUE}
 # this function modifies the gs value according to the Naomi's example
@@ -211,4 +211,94 @@ plot(et,et_newgs2,type="p",col="red", main='comparison of original and modified 
 ```
 
 # sensitivity estimation
-visually estimate the effect of parameter 
+visually estimate the effect of several parameters of the PM function
+each variable is separately multiplied by a factor running from 0 to 2 with differences of 0.05
+blue lines indicate factors smaller than 1, red lines indicate factor larger than 1, and black line indicates original estimation of ET values
+```{r , echo=FALSE}
+senseitivityfactor=seq(from=0.00 ,to=2.0 ,by=0.05)
+et_sensitivity=array(data=0,dim=c(length(et),length(senseitivityfactor),6))
+
+# define the colums to be evaluated for sensitivity
+sensitivity_vec=c(8,9,10,11,12,17)
+jj=1;
+
+for (jj in 1:length(sensitivity_vec)) {
+  for (ii in 1:length(senseitivityfactor)){
+    temp_metdata=metdata
+    temp_metdata[,sensitivity_vec[jj]]=metdata[,sensitivity_vec[jj]]*senseitivityfactor[ii]
+    et_sensitivity[1:length(et),ii,jj]<-penman_montieth (Tair=temp_metdata$tavg,vpd = temp_metdata$vpd, Rnet=temp_metdata$rnet,gs=temp_metdata$gs, ga=temp_metdata$ga, dayl=temp_metdata$daylengthbynum, CP=1010, Pair=101325)
+  }
+}
+
+# jj defines the parameter to be plotted
+jj=1;
+
+#define a color vector for plotting data
+colorvec<-c(rep('blue', 20), 'black',rep('red', 20))
+
+plot(et,type="l",col="black", main='ET sensitivity to temperature',xlab='day', ylab='PM estimated ET')
+for(ii in 1:length(senseitivityfactor)){
+lines(et_sensitivity[,ii,jj],col=colorvec[ii])}
+lines(et,type="l",col="black")
+
+# jj defines the parameter to be plotted
+jj=2;
+
+#define a color vector for plotting data
+colorvec<-c(rep('blue', 20), 'black',rep('red', 20))
+
+plot(et,type="l",col="black", main='ET sensitivity to vpd',xlab='day', ylab='PM estimated ET')
+for(ii in 1:length(senseitivityfactor)){
+lines(et_sensitivity[,ii,jj],col=colorvec[ii])}
+lines(et,type="l",col="black")
+
+# jj defines the parameter to be plotted
+jj=3;
+
+#define a color vector for plotting data
+colorvec<-c(rep('blue', 20), 'black',rep('red', 20))
+
+plot(et,type="l",col="black", main='ET sensitivity to Rnet',xlab='day', ylab='PM estimated ET')
+for(ii in 1:length(senseitivityfactor)){
+lines(et_sensitivity[,ii,jj],col=colorvec[ii])}
+lines(et,type="l",col="black")
+
+# jj defines the parameter to be plotted
+jj=4;
+
+#define a color vector for plotting data
+colorvec<-c(rep('blue', 20), 'black',rep('red', 20))
+
+plot(et,type="l",col="black", main='ET sensitivity to gs',xlab='day', ylab='PM estimated ET')
+for(ii in 1:length(senseitivityfactor)){
+lines(et_sensitivity[,ii,jj],col=colorvec[ii])}
+lines(et,type="l",col="black")
+
+
+# jj defines the parameter to be plotted
+jj=5;
+
+#define a color vector for plotting data
+colorvec<-c(rep('blue', 20), 'black',rep('red', 20))
+
+plot(et,type="l",col="black", main='ET sensitivity to ga',xlab='day', ylab='PM estimated ET')
+for(ii in 1:length(senseitivityfactor)){
+lines(et_sensitivity[,ii,jj],col=colorvec[ii])}
+lines(et,type="l",col="black")
+
+# jj defines the parameter to be plotted
+jj=6;
+#define a color vector for plotting data
+colorvec<-c(rep('blue', 20), 'black',rep('red', 20))
+
+plot(et,type="l",col="black", main='ET sensitivity to day length',xlab='day', ylab='PM estimated ET')
+for(ii in 1:length(senseitivityfactor)){
+lines(et_sensitivity[,ii,jj],col=colorvec[ii])}
+lines(et,type="l",col="black")
+```
+
+# Conclusions
+the model appears to show high sensitivity to some of the inputs, but also demonstrates high resiliency to others
+vpd and day length have little effect on the PM estimation of ET
+Radiation and temperature show relatively high sensitivity, while gs shows relatively moderate impact
+ga shows inverse sensitivity, and increasing factors produce smaller ET values, highest values are obtained for the smallest factors, while increasing ga shows moderate impact on ET. this relationship is easily explained by the location of the ga term in the PM equation
