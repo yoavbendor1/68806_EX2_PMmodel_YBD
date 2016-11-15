@@ -15,3 +15,10 @@ for (ii in 1:length(daylengthbynum)) {
 
 # calculate et using the PM function of N.Tague
 et<-penman_montieth (Tair=metdata$tavg,vpd = metdata$vpd, Rnet=metdata$rnet,gs=metdata$gs, ga=metdata$ga, dayl=daylengthbynum, CP=1010, Pair=101325)
+
+# evaluate a new gs using a basic if function
+new_gs <-modified_gs(gs=metdata$gs, Tair=metdata$tavg)
+et_newgs<-penman_montieth (Tair=metdata$tavg,vpd = metdata$vpd, Rnet=metdata$rnet,gs=new_gs, ga=metdata$ga, dayl=daylengthbynum, CP=1010, Pair=101325)
+
+# plot a comparison of the two et values
+plot(et,et_newgs,type="p",col="red")
