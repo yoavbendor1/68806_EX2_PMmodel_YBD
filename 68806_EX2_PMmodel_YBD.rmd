@@ -1,0 +1,207 @@
+---
+title: "68806_EX2_PMmodel"
+author: "YBD"
+date: "2016 M11 15"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## ET Estimation using Penman-Montieth Equation
+
+This file shows the solution to Ex.2 for the P-M model of ET estimation and some of its adjustments
+
+```{r metdata ,echo=FALSE}
+metdata = read.table("metdata.txt", sep="", header=T)
+summary(metdata)
+```
+
+# calculate daylight hours in Jerusalem to be used as input to P-M function
+
+```{r , echo=FALSE}
+# estimate daylength in Jerusalem
+# day length in Jerusalem ranges between 10 to 14 h
+# estimate day length for each half of the year and concatanate
+daylength<-seq(from = 10, to = 14, length.out =((365-1)/2))
+daylength2<-seq(from = 14, to = 10, length.out =((365)/2))
+daylengthJer<-c(daylength,daylength2)
+
+#fit the right daylength according to the day of the year
+daynum<-metdata$yd
+daylengthbynum=rep(0,length(daynum))
+
+for (ii in 1:length(daylengthbynum)) {
+  daylengthbynum[ii]=daylengthJer[daynum[ii]]
+}
+
+plot(daylengthJer, type='l',main='day length',xlab='day of the year',ylab='day length [h]')
+```
+
+calculate ET using the Penamn-Montieth equation of Naomi
+
+```{r , echo=TRUE}
+#' Penman Montieth Equation
+#' 
+#' THis function computer evapotranspiration based on radiation, conductance etc
+#' 
+
+#' @param        Tair    (deg C) air temperature
+#' @param    vpd     (Pa)    vapour pressure deficit
+#' @param     Rnet    (j/m2/day)      net radiation
+#' @param     gs      (s/mm)  surface conductance
+#' @param     ga      (s/mm)  aerodynamic conductance
+#' @param     CP  =      1010.0 (J/kg*K) specific heat of air
+#' @param    Pair = 101325 (Pa)
+#' @author Naomi
+#' @return Evapotranspiration (mm/day)
+ 
+ 
+penman_montieth =
+function(Tair, vpd, Rnet, gs,ga, dayl, CP=1010, Pair=101325) {
+  
+  #       Internal Variables
+  #
+  #       rho     (kg/m3)         density of air
+  #       CP      (K/jg/degC)     specific heat of air
+  #       lhvap   (J/kg)          latent heat of vapourization H20
+  #       s       (Pa/degC)       slope of sat vpd vs T curve
+  #       rs      (s/m)   surface resistance
+  #       ra      (s/m)   aerodynamic resistance
+  
+
+  # convert Rnet to daytime value in j/m2/s
+  Rnet = Rnet / (60*60*dayl)
+  
+  # convert conductance to resistance and change units
+  rs = 1000.0/gs
+  ra = 1000.0/ga
+  
+  # Assign tk (Kelvins)
+  tk = Tair + 273.15
+  
+  #       Density of air (rho) as a fn. of air temp.
+  rho = 1.292 * ( 0.00428 * Tair )
+  
+  #       Latent heat of vapourization as a fn. of Tair.
+  lhvap = 2.5023e6 - 2430.54 * Tair
+  
+  #       Temperature offsets for slope estimates
+  dt = 0.2
+  t1 = Tair + dt
+  t2 = Tair - dt
+  
+  #       Saturation vapour pressures at t1 and t2(Pa)
+  pvs1 = 610.7 * exp(17.38 * t1 / ( 239.0 + t1))
+  pvs2 = 610.7 * exp(17.38 * t2 / ( 239.0 + t2))
+  
+  #       Slope of pvs vs T curve at Tair (Pa/deg C)
+  s = ( pvs1 -   pvs2 ) / ( t1 -  t2 )
+  
+  #       Calculate gamma
+  gamma = CP * Pair / ( lhvap )
+  
+  
+  #       Evaporation in W/m2
+  et = ((s*Rnet) + (rho*CP*vpd/ra)) / (gamma*(1.0 + rs/ra) +s)
+  
+  
+  #       mH20/s = W/m2 * 1kgH20/lhvap J * 1m3H20/1000kGH20
+  ewater = ( et/ ( lhvap * 1000 ))
+  
+  # mmH20/day
+  ewater.day = ewater * dayl*60*60 * 1000
+  
+  # return from your function
+  ewater.day
+}
+
+```
+
+```{r , echo=FALSE}
+
+# calculate et using the PM function of N.Tague
+et<-penman_montieth (Tair=metdata$tavg,vpd = metdata$vpd, Rnet=metdata$rnet,gs=metdata$gs, ga=metdata$ga, dayl=daylengthbynum, CP=1010, Pair=101325)
+plot(et,type='l',main='ET P-M estimation', xlab='day', ylab='ET')
+
+```
+
+Adjust gs values following simplistic assumptions in Naomi email
+if the temperature is above mean temperature, the maximum gs value is assigend
+if the temperature is below mean temperature, a zero value is assigend
+
+```{r , echo=TRUE}
+# this function modifies the gs value according to the Naomi's example
+
+#' @param        Tair    (deg C) air temperature
+#' @param     gs      (s/mm)  surface conductance
+#' @author Yoav BD
+#' @return new gs (s/mm)
+
+modified_gs=
+  function(gs, Tair){
+  cond1=mean(Tair)
+  maxgs=max(gs)
+  # calculate ET
+  newgs=ifelse (Tair >= cond1, maxgs, 0)
+}
+```
+
+```{r , echo=FALSE}
+# evaluate a new gs using a basic if function
+new_gs <-modified_gs(gs=metdata$gs, Tair=metdata$tavg)
+et_newgs<-penman_montieth (Tair=metdata$tavg,vpd = metdata$vpd, Rnet=metdata$rnet,gs=new_gs, ga=metdata$ga, dayl=daylengthbynum, CP=1010, Pair=101325)
+
+# plot both et calculated values
+plot(et, main='comparison of original and modified ET',col="blue",ylab='ET', xlab='day')
+points(et_newgs, main='comparison of original and modified ET',col="red")
+# plot a comparison of the two et values
+plot(et,et_newgs,type="p",col="red", main='comparison of original and modified ET',xlab='PM derived ET', ylab='modified ET using new gs value')
+```
+
+# adjust gs according to a second set of assumptions
+gs is a multiple of maximum gs value multiplied by a vpd scaling factor and a linear gs-t relationship
+```{r , echo=TRUE}
+# Modify gs values:
+# gs is defined by its max value, multiplied with relative Tair scale factor and scaled vpd
+
+#' @param    Tair    (deg C) air temperature
+#' @param    vpd     (Pa)    vapour pressure deficit
+#' @param    gs      (s/mm)  surface conductance
+#' @author Yoav BD
+#' @return Evapotranspiration (mm/day)
+
+
+modified_gs2 =
+  function(Tair, vpd, gs) {
+    # find max value of gs 
+    maxgs=max(gs)
+
+    # parametrize a linear gs-t relationship
+    xval=seq(from=min(Tair) , to=max(Tair), by=0.001 )
+    yval=seq(from=0.8 , to=1, length.out =length(xval))
+    gstfactor=rep(0,length(gs))
+    for (ii in 1:length(gs)) {
+      gstfactor[ii]=yval[match(Tair[ii],xval)]
+    }
+
+    # scale the vpd values
+    scaledvpd=vpd/max(vpd)
+    
+    newgs=maxgs*scaledvpd*gstfactor
+  }
+```
+
+```{r , echo=FALSE}
+new_gs2 <-modified_gs2(gs=metdata$gs, Tair=metdata$tavg, vpd=metdata$vpd)
+et_newgs2<-penman_montieth (Tair=metdata$tavg,vpd = metdata$vpd, Rnet=metdata$rnet,gs=new_gs2, ga=metdata$ga, dayl=daylengthbynum, CP=1010, Pair=101325)
+
+# plot both et calculated values
+plot(et,type='l', main='comparison of original and modified ET',col="blue",ylab='ET', xlab='day')
+lines(et_newgs, col="red")
+lines(et_newgs2, col="green")
+
+# plot a comparison of the two et values
+plot(et,et_newgs2,type="p",col="red", main='comparison of original and modified ET',xlab='PM derived ET', ylab='modified ET using new gs value')
+```

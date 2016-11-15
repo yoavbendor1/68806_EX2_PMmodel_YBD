@@ -20,5 +20,22 @@ et<-penman_montieth (Tair=metdata$tavg,vpd = metdata$vpd, Rnet=metdata$rnet,gs=m
 new_gs <-modified_gs(gs=metdata$gs, Tair=metdata$tavg)
 et_newgs<-penman_montieth (Tair=metdata$tavg,vpd = metdata$vpd, Rnet=metdata$rnet,gs=new_gs, ga=metdata$ga, dayl=daylengthbynum, CP=1010, Pair=101325)
 
+# plot both et calculated values
+plot(et, main='comparison of original and modified ET',col="blue",ylab='ET', xlab='day')
+points(et_newgs, main='comparison of original and modified ET',col="red")
 # plot a comparison of the two et values
-plot(et,et_newgs,type="p",col="red")
+plot(et,et_newgs,type="p",col="red", main='comparison of original and modified ET',xlab='PM derived ET', ylab='modified ET using new gs value')
+
+#adjust gs such that 
+# evaluate a new gs using a basic if function
+new_gs2 <-modified_gs2(gs=metdata$gs, Tair=metdata$tavg, vpd=metdata$vpd)
+et_newgs2<-penman_montieth (Tair=metdata$tavg,vpd = metdata$vpd, Rnet=metdata$rnet,gs=new_gs2, ga=metdata$ga, dayl=daylengthbynum, CP=1010, Pair=101325)
+
+# plot both et calculated values
+plot(et,type='l', main='comparison of original and modified ET',col="blue",ylab='ET', xlab='day')
+lines(et_newgs, col="red")
+lines(et_newgs2, col="green")
+
+# plot a comparison of the two et values
+plot(et,et_newgs2,type="p",col="red", main='comparison of original and modified ET',xlab='PM derived ET', ylab='modified ET using new gs value')
+

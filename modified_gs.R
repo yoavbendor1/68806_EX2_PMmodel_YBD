@@ -1,4 +1,4 @@
-# this function modifies the gs value according to the Naomi's example 
+# this function modifies the gs value according to the Naomi's example
 
 #' @param        Tair    (deg C) air temperature
 #' @param     gs      (s/mm)  surface conductance
@@ -8,6 +8,8 @@
 modified_gs=
   function(gs, Tair){
   cond1=mean(Tair)
-  newgs=ifelse (Tair >= cond1, gs, 0.5*gs)
+  maxgs=max(gs)
+  # calculate ET
+  newgs=ifelse (Tair >= cond1, maxgs, 0)
 }
 
